@@ -148,6 +148,22 @@ so a WhatsApp Business Cloud API, an SMS gateway with a delivery-receipt
 callback, or an SMTP sender can be added later without changing the model or
 losing this history.
 
+### Public admission enquiries
+A page at `/admission` that anyone can use without an account. A parent enters the
+child's details and gets a reference number; the enquiry lands in **Admissions** for the
+office to review, telephone the family, and record what happened.
+
+Pressing **Admit** creates the student record from the enquiry — name, parent, date of
+birth, contact numbers and address are carried across, the enquiry is linked to the
+student it produced, and the admission is written to the audit log. Nothing a stranger
+submits becomes a student until a member of staff does this.
+
+Because the page is open to the internet it is written defensively: every field is
+length-bounded and validated, mobile numbers must be real Pakistani mobiles, submissions
+are capped per address per hour, the same child sent twice in a day returns the original
+reference instead of a duplicate, and a hidden honeypot field files bot submissions as
+spam without telling the sender.
+
 ### Result approval & locking
 Marks completed → verification → processing → controller review → principal approval →
 publication → lock. After locking, teachers and the Examination Controller can no

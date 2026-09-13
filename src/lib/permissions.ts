@@ -19,6 +19,10 @@ export const PERMISSIONS = {
   'students.export': { name: 'Export student data', group: 'Students' },
   'students.promote': { name: 'Promote students', group: 'Students' },
 
+  // Admissions
+  'admissions.view': { name: 'View admission enquiries', group: 'Admissions' },
+  'admissions.manage': { name: 'Handle admission enquiries', group: 'Admissions' },
+
   // Academics
   'academics.view': { name: 'View academic structure', group: 'Academics' },
   'sessions.manage': { name: 'Manage academic sessions', group: 'Academics' },
@@ -92,6 +96,8 @@ export const ROLE_PERMISSIONS: Record<RoleCode, PermissionCode[]> = {
     'search.global',
     'students.view',
     'students.export',
+    'admissions.view',
+    'admissions.manage',
     'academics.view',
     'exams.view',
     'marks.view',

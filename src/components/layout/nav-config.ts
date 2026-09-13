@@ -41,6 +41,12 @@ export const NAVIGATION: NavGroup[] = [
     ],
   },
   {
+    label: 'Admissions',
+    icon: 'Inbox',
+    href: '/admissions',
+    permissions: ['admissions.view'],
+  },
+  {
     label: 'Academics',
     icon: 'BookOpen',
     permissions: ['academics.view'],

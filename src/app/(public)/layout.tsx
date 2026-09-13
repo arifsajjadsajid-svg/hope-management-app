@@ -21,12 +21,20 @@ export default async function PublicLayout({ children }: { children: React.React
             <p className="text-[12.5px] text-navy-200">{academy.address}</p>
             <p className="text-[12.5px] text-navy-200 tabular">{academy.contactLine}</p>
           </div>
-          <Link
-            href="/login"
-            className="shrink-0 rounded-lg border border-white/25 px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-white/10"
-          >
-            Staff Sign In
-          </Link>
+          <div className="flex shrink-0 items-center gap-2">
+            <Link
+              href="/admission"
+              className="rounded-lg bg-gold-gradient px-4 py-2 text-[13px] font-bold text-navy-900 transition hover:brightness-105"
+            >
+              Apply for Admission
+            </Link>
+            <Link
+              href="/login"
+              className="rounded-lg border border-white/25 px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-white/10"
+            >
+              Staff Sign In
+            </Link>
+          </div>
         </div>
         <div className="h-[3px] w-full bg-gold-gradient" />
       </header>

@@ -99,6 +99,7 @@ model User {
   backups        Backup[]
   importBatches  ImportBatch[]
   certificates   Certificate[]           @relation("CertificateIssuedBy")
+  enquiries      AdmissionEnquiry[]      @relation("EnquiryHandledBy")
 
   @@index([roleId])
   @@index([status])
@@ -356,6 +357,7 @@ model Student {
   promotions   StudentPromotion[]
   portalUsers  User[]
   messages     MessageRecipient[]
+  enquiry      AdmissionEnquiry?
 
   @@index([status])
   @@index([fullName])
@@ -1030,4 +1032,53 @@ model StoredFile {
   @@unique([folder, fileName])
   @@index([folder])
   @@map("stored_files")
+}
+
+// ---------------------------------------------------------------------
+// PUBLIC ADMISSION ENQUIRIES
+// ---------------------------------------------------------------------
+
+/// An enquiry submitted from the public admission form by a parent, with no
+/// account and no sign-in.
+///
+/// Deliberately separate from `Student`: an enquiry is something a stranger
+/// typed, so it is held apart until the office has spoken to the family and
+/// chosen to admit them. Converting an enquiry creates the Student record and
+/// links the two, so the office can always see where an admission came from.
+model AdmissionEnquiry {
+  id               String    @id @default(cuid())
+  reference        String    @unique // shown to the parent, e.g. "ENQ-2026-0042"
+  studentName      String
+  fatherName       String
+  dateOfBirth      DateTime?
+  gender           String    @default("MALE") // MALE | FEMALE | OTHER
+  classApplyingFor String
+  previousSchool   String?
+  contactPhone     String
+  whatsappNumber   String?
+  email            String?
+  address          String?
+  message          String?
+
+  status      String    @default("NEW") // NEW | CONTACTED | ADMITTED | DECLINED | SPAM
+  handledById String?
+  handledAt   DateTime?
+  officeNotes String?
+
+  /// Set once the enquiry becomes a real student record.
+  studentId String? @unique
+
+  /// Kept for rate limiting and for tracing abusive submissions.
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  handledBy User?    @relation("EnquiryHandledBy", fields: [handledById], references: [id], onDelete: SetNull)
+  student   Student? @relation(fields: [studentId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([createdAt])
+  @@map("admission_enquiries")
 }
