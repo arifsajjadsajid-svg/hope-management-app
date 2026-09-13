@@ -19,7 +19,7 @@ You need Node.js 20+ and a PostgreSQL database. A free
 
 ```bash
 npm install
-cp .env.example .env        # then fill in DATABASE_URL, DIRECT_URL and APP_SECRET
+cp .env.example .env        # then fill in DATABASE_URL and DIRECT_URL
 npm run setup               # apply migrations and load demonstration data
 npm run dev                 # http://localhost:3000
 ```
@@ -208,7 +208,6 @@ whole database as a single JSON file and can put it back again.
 ```ini
 DATABASE_URL="postgresql://user:pass@host/db?sslmode=require&pgbouncer=true"
 DIRECT_URL="postgresql://user:pass@host/db?sslmode=require"
-APP_SECRET="<48 random bytes>"
 NEXT_PUBLIC_APP_URL="https://your-site.vercel.app"
 SESSION_LIFETIME_MINUTES=720
 SESSION_IDLE_TIMEOUT_MINUTES=60
@@ -223,11 +222,10 @@ certificates, so it must be the address parents actually visit. On Vercel it fal
 to the project's own production domain if unset, but set it explicitly once you have a
 custom domain — otherwise documents printed today verify against yesterday's address.
 
-Generate a secret with:
-
-```bash
-node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
-```
+There is deliberately no signing secret to configure. Sessions are not signed
+cookies: each sign-in generates 32 random bytes, and only their SHA-256 hash is
+stored, so a stolen database yields no usable session and there is no key that
+could leak or need rotating.
 
 ---
 
@@ -244,7 +242,6 @@ In the Vercel dashboard: **Storage → Create Database → Neon**. Vercel adds
 
 | Name | Value |
 | --- | --- |
-| `APP_SECRET` | 48 random bytes, generated with the command above |
 | `NEXT_PUBLIC_APP_URL` | `https://<your-project>.vercel.app`, or your own domain |
 
 ### 3. Deploy
