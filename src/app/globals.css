@@ -1,0 +1,290 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =====================================================================
+   THE HOPE SCIENCE ACADEMY
+   Academic & Examination Management System — global styles
+   ===================================================================== */
+
+:root {
+  /* System stacks keep printed documents identical on every machine and
+     remove any dependency on a font CDN at build or print time. */
+  --font-sans: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+  --font-serif: Georgia, 'Times New Roman', 'Cambria', serif;
+
+  --brand-navy: #0f2547;
+  --brand-royal: #1e368a;
+  --brand-gold: #c8a34a;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #f4f6fa;
+  color: #14213d;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* Numeric columns in every table line up. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------ scrollbar */
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: #c8d2e0;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: #9aabc2;
+  background-clip: content-box;
+}
+
+/* --------------------------------------------------------- focus states */
+
+:focus-visible {
+  outline: 2px solid var(--brand-royal);
+  outline-offset: 2px;
+}
+
+/* -------------------------------------------------------- form elements */
+
+@layer components {
+  .field-label {
+    @apply mb-1.5 block text-[13px] font-semibold text-navy-800;
+  }
+
+  .field-input {
+    @apply block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-navy-900
+           shadow-sm transition placeholder:text-slate-400
+           focus:border-royal-500 focus:outline-none focus:ring-2 focus:ring-royal-200
+           disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500;
+  }
+
+  .field-hint {
+    @apply mt-1 text-xs text-slate-500;
+  }
+
+  .field-error {
+    @apply mt-1 text-xs font-medium text-rose-600;
+  }
+
+  .card {
+    @apply rounded-xl border border-slate-200 bg-white shadow-card;
+  }
+
+  .card-header {
+    @apply flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4;
+  }
+
+  .card-title {
+    @apply text-base font-bold tracking-tight text-navy-900;
+  }
+
+  .data-table {
+    @apply w-full border-collapse text-sm;
+  }
+
+  .data-table thead th {
+    @apply whitespace-nowrap border-b border-slate-200 bg-slate-50 px-3 py-2.5 text-left
+           text-[11px] font-bold uppercase tracking-wider text-navy-700;
+  }
+
+  .data-table tbody td {
+    @apply border-b border-slate-100 px-3 py-2.5 align-middle text-navy-900;
+  }
+
+  .data-table tbody tr:hover {
+    @apply bg-royal-50/40;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset;
+  }
+
+  .gold-rule {
+    @apply h-[3px] w-full rounded-full bg-gold-gradient;
+  }
+}
+
+/* =====================================================================
+   PRINT / OFFICIAL DOCUMENTS
+   Every printable document is laid out in millimetres on A4 so what is
+   shown on screen is exactly what comes out of the printer.
+   ===================================================================== */
+
+.sheet {
+  background: #ffffff;
+  color: #000000;
+  box-sizing: border-box;
+  margin: 0 auto 12mm;
+  box-shadow: 0 4px 24px rgba(15, 37, 71, 0.16);
+}
+
+.sheet-a4 {
+  width: 210mm;
+  min-height: 297mm;
+  padding: 12mm 12mm 14mm;
+}
+
+.sheet-a4-landscape {
+  width: 297mm;
+  min-height: 210mm;
+  padding: 10mm 12mm 12mm;
+}
+
+/* A tight A4 used for slip grids — padding handled by the grid itself. */
+.sheet-a4-flush {
+  width: 210mm;
+  min-height: 297mm;
+  padding: 8mm;
+}
+
+@page {
+  size: A4 portrait;
+  margin: 0;
+}
+
+.page-landscape @page {
+  size: A4 landscape;
+}
+
+@media print {
+  html,
+  body {
+    background: #ffffff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .no-print,
+  .no-print * {
+    display: none !important;
+  }
+
+  .sheet {
+    box-shadow: none !important;
+    margin: 0 !important;
+    page-break-after: always;
+    break-after: page;
+  }
+
+  .sheet:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+
+  .avoid-break {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tr,
+  img {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Preserve the navy/gold identity on paper. */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
+/* --------------------------------------------------- document typography */
+
+.doc-serif {
+  font-family: var(--font-serif);
+}
+
+.doc-title {
+  font-family: var(--font-serif);
+  letter-spacing: 0.02em;
+}
+
+.doc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10.5pt;
+}
+
+.doc-table th,
+.doc-table td {
+  border: 1px solid #24384f;
+  padding: 3.2mm 2.4mm;
+  text-align: left;
+}
+
+.doc-table thead th {
+  background: #0f2547;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 9.5pt;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.doc-table tbody tr:nth-child(even) td {
+  background: #f4f6fa;
+}
+
+.doc-table .num {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Signature lines used across slips, report cards and certificates. */
+.sign-line {
+  border-top: 1px solid #24384f;
+  padding-top: 1.5mm;
+  font-size: 8.5pt;
+  text-align: center;
+  font-weight: 600;
+  color: #0f2547;
+}
+
+/* --------------------------------------------------------- misc helpers */
+
+.animate-in {
+  animation: fade-in 0.2s ease-out;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Hide number-input spinners in the marks grid. */
+input.no-spinner::-webkit-outer-spin-button,
+input.no-spinner::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input.no-spinner {
+  -moz-appearance: textfield;
+}

@@ -1,0 +1,35 @@
+# Dependencies and build output
+node_modules/
+.next/
+out/
+build/
+next-env.d.ts
+tsconfig.tsbuildinfo
+
+# Secrets - never commit these
+.env
+.env.local
+.env.*.local
+
+# The database and anything taken out of it
+/prisma/*.db
+/prisma/*.db-journal
+/prisma/*.db-wal
+/prisma/*.db-shm
+/storage/uploads/*
+!/storage/uploads/.gitkeep
+/storage/backups/*
+!/storage/backups/.gitkeep
+
+# Tooling
+.vercel
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# Local backups of environment files
+.env*.bak
+
+# Editor / tooling local state
+.claude/
