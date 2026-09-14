@@ -17,7 +17,7 @@
     "setup": "prisma generate && prisma migrate deploy && tsx prisma/seed.ts",
     "backup": "tsx scripts/backup.ts",
     "reset-admin": "tsx scripts/reset-admin.ts",
-    "vercel-build": "prisma generate && prisma migrate deploy && next build",
+    "vercel-build": "prisma generate && next build",
     "db:bootstrap": "tsx prisma/bootstrap.ts",
     "db:deploy": "prisma migrate deploy",
     "restore": "tsx scripts/restore.ts"

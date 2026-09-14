@@ -263,8 +263,15 @@ In the Vercel dashboard: **Storage → Create Database → Neon**. Vercel adds
 ### 3. Deploy
 
 Import the GitHub repository. Vercel runs `npm run vercel-build`, which generates the
-Prisma client, applies migrations to the database and builds the site. No build settings
-need changing.
+Prisma client and builds the site. No build settings need changing.
+
+Migrations are deliberately **not** run during the build. A build container cannot always
+reach the database, and two deployments building at once would race each other. Apply them
+yourself instead, from a machine whose `.env` points at the live database:
+
+```bash
+npm run db:deploy
+```
 
 ### 4. Create the first administrator
 
