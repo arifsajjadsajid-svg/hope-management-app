@@ -6,7 +6,6 @@ import { prisma } from '@/lib/prisma';
 import { formatDisplay } from '@/lib/phone';
 import { Card, CardBody, CardHeader } from '@/components/ui/primitives';
 import { formatDateTime } from '@/lib/utils';
-import { ParentChangePasswordForm } from '../../change-password-form';
 import { SignOutOtherDevicesButton } from './account-clients';
 
 export const metadata: Metadata = { title: 'Parent Portal · My Account' };
@@ -85,13 +84,6 @@ export default async function ParentAccountPage() {
             <div className="mt-4">
               <SignOutOtherDevicesButton disabled={otherDevices === 0} />
             </div>
-          </CardBody>
-        </Card>
-
-        <Card className="lg:col-span-2">
-          <CardHeader title="Change password" description="Choose one only you know" />
-          <CardBody className="max-w-md">
-            <ParentChangePasswordForm doneHref="/parent/account" />
           </CardBody>
         </Card>
       </div>

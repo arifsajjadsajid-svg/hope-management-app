@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
 export default async function ParentLoginPage() {
   // A remembered device goes straight in.
   const parent = await getCurrentParent();
-  if (parent) redirect(parent.mustChangePassword ? '/parent/change-password' : '/parent');
+  if (parent) redirect('/parent');
 
   const academy = await getAcademySettings();
 
@@ -36,7 +36,7 @@ export default async function ParentLoginPage() {
 
         <div className="mt-5 space-y-2 text-center text-[13px] leading-relaxed text-slate-600">
           <p>
-            <strong className="text-navy-900">Forgotten your password, or no account yet?</strong>
+            <strong className="text-navy-900">Number not recognised?</strong>
             <br />
             Call the academy on <span className="tabular">{academy.contactLine}</span>
           </p>

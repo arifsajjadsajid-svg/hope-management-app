@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Users, UserCheck, Clock, UserX, ExternalLink, AlertTriangle } from 'lucide-react';
+import { Users, UserCheck, PowerOff, UserX, ExternalLink, AlertTriangle } from 'lucide-react';
 import { requirePermission, userCan } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getAcademySettings, appBaseUrl } from '@/lib/settings';
@@ -10,7 +10,7 @@ import { Card, CardHeader, EmptyState, Alert, Badge } from '@/components/ui/prim
 import { Table, TableWrap, Th, Td } from '@/components/ui/table';
 import { StatCard } from '@/components/ui/stat-card';
 import { formatDateTime } from '@/lib/utils';
-import { CreateParentButton, ParentRowActions, LockedHint } from './parent-clients';
+import { CreateParentButton, GrantAllButton, ParentRowActions } from './parent-clients';
 
 export const metadata: Metadata = { title: 'Parent Accounts' };
 export const dynamic = 'force-dynamic';
@@ -72,7 +72,7 @@ export default async function ParentAccountsPage() {
   const signedInRecently = accounts.filter(
     (a) => a.lastLoginAt && a.lastLoginAt >= thirtyDaysAgo,
   ).length;
-  const awaitingFirstSignIn = accounts.filter((a) => a.mustChangePassword).length;
+  const switchedOff = accounts.filter((a) => a.status === 'DISABLED').length;
 
   return (
     <>
@@ -97,9 +97,10 @@ export default async function ParentAccountsPage() {
       />
 
       <Alert tone="info" className="mb-5">
-        Parents sign in at <strong>{portalUrl}/parent/login</strong> with their mobile number and a
-        password. They see only their own children — every current student whose parent or WhatsApp
-        number matches — and only results the academy has published. They cannot change anything.
+        Parents sign in at <strong>{portalUrl}/parent/login</strong> with their mobile number — there is
+        no password. A number can only sign in once it has access here. Parents see only their own
+        children — every current student whose parent or WhatsApp number matches — and only results
+        the academy has published. They cannot change anything.
       </Alert>
 
       <section className="mb-5 grid grid-cols-2 gap-3.5 sm:grid-cols-4">
@@ -116,14 +117,13 @@ export default async function ParentAccountsPage() {
           icon={<UserCheck className="h-[18px] w-[18px]" />}
         />
         <StatCard
-          label="Awaiting First Sign-in"
-          value={awaitingFirstSignIn}
-          tone={awaitingFirstSignIn ? 'amber' : 'slate'}
-          icon={<Clock className="h-[18px] w-[18px]" />}
-          hint="Still on a temporary password"
+          label="Switched Off"
+          value={switchedOff}
+          tone={switchedOff ? 'amber' : 'slate'}
+          icon={<PowerOff className="h-[18px] w-[18px]" />}
         />
         <StatCard
-          label="Families Without Account"
+          label="Families Without Access"
           value={withoutAccount.length}
           tone={withoutAccount.length ? 'royal' : 'slate'}
           icon={<UserX className="h-[18px] w-[18px]" />}
@@ -131,12 +131,12 @@ export default async function ParentAccountsPage() {
       </section>
 
       <Card className="mb-5">
-        <CardHeader title="Accounts" description={`${accounts.length} parent account(s)`} />
+        <CardHeader title="Parents with access" description={`${accounts.length} parent(s)`} />
         {accounts.length === 0 ? (
           <EmptyState
             icon={<Users className="h-6 w-6" />}
-            title="No parent accounts yet"
-            description="Create one below from the families already on your student records, or add one by hand."
+            title="No parents have access yet"
+            description="Give access below to the families already on your student records, or add a parent by hand."
           />
         ) : (
           <TableWrap>
@@ -154,7 +154,6 @@ export default async function ParentAccountsPage() {
               <tbody>
                 {accounts.map((account) => {
                   const children = families.get(account.phone) ?? [];
-                  const locked = account.lockedUntil && account.lockedUntil > new Date();
 
                   return (
                     <tr key={account.id}>
@@ -177,17 +176,8 @@ export default async function ParentAccountsPage() {
                       <Td>
                         {account.status === 'DISABLED' ? (
                           <Badge tone="bg-slate-100 text-slate-600 ring-slate-200">Switched off</Badge>
-                        ) : account.mustChangePassword ? (
-                          <Badge tone="bg-amber-50 text-amber-700 ring-amber-200">
-                            Awaiting first sign-in
-                          </Badge>
                         ) : (
                           <Badge tone="bg-emerald-50 text-emerald-700 ring-emerald-200">Active</Badge>
-                        )}
-                        {locked && (
-                          <span className="mt-1 block">
-                            <LockedHint />
-                          </span>
                         )}
                       </Td>
                       <Td className="whitespace-nowrap text-[12px] tabular text-slate-600">
@@ -201,6 +191,9 @@ export default async function ParentAccountsPage() {
                           <ParentRowActions
                             id={account.id}
                             displayName={account.displayName}
+                            dialNumber={account.phone}
+                            phoneDisplay={formatDisplay(account.phone)}
+                            childNames={children.map((c) => c.fullName)}
                             status={account.status}
                             activeDevices={account._count.sessions}
                             portalUrl={portalUrl}
@@ -219,14 +212,19 @@ export default async function ParentAccountsPage() {
 
       <Card>
         <CardHeader
-          title="Families without an account"
-          description="Numbers on current student records that no parent can sign in with yet"
+          title="Families without access"
+          description="Numbers on current student records that cannot sign in yet"
+          actions={
+            canManage && withoutAccount.length > 1 ? (
+              <GrantAllButton count={withoutAccount.length} />
+            ) : undefined
+          }
         />
         {withoutAccount.length === 0 ? (
           <EmptyState
             icon={<UserCheck className="h-6 w-6" />}
             title="Every family can sign in"
-            description="Each current student with a parent or WhatsApp number is covered by an account."
+            description="Each current student with a parent or WhatsApp number can be seen by a parent."
           />
         ) : (
           <TableWrap>
@@ -258,7 +256,7 @@ export default async function ParentAccountsPage() {
                           portalUrl={portalUrl}
                           academyName={academy.name}
                           variant="outline"
-                          label="Create account"
+                          label="Give access"
                           prefill={{
                             phone: formatDisplay(dialNumber),
                             displayName: children[0]?.fatherName ?? '',

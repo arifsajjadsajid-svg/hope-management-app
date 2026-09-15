@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { requireParent, childrenForPhone } from '@/lib/parent-auth';
 import { prisma } from '@/lib/prisma';
 import { getAcademySettings } from '@/lib/settings';
@@ -24,7 +24,6 @@ export default async function ParentReportCardPage({
   params: Promise<{ resultId: string }>;
 }) {
   const parent = await requireParent();
-  if (parent.mustChangePassword) redirect('/parent/change-password');
 
   const { resultId } = await params;
 

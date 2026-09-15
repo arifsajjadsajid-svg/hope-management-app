@@ -24,8 +24,8 @@ export const PERMISSIONS = {
   'admissions.manage': { name: 'Handle admission enquiries', group: 'Admissions' },
 
   // Parent portal
-  'parents.view': { name: 'View parent portal accounts', group: 'Parent Portal' },
-  'parents.manage': { name: 'Create parent accounts and reset their passwords', group: 'Parent Portal' },
+  'parents.view': { name: 'View which parents have portal access', group: 'Parent Portal' },
+  'parents.manage': { name: 'Give or remove parent portal access', group: 'Parent Portal' },
 
   // Academics
   'academics.view': { name: 'View academic structure', group: 'Academics' },

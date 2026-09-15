@@ -38,7 +38,6 @@ export type SessionParent = {
   id: string;
   phone: string;
   displayName: string;
-  mustChangePassword: boolean;
   sessionId: string;
 };
 
@@ -122,7 +121,6 @@ export const getCurrentParent = cache(async (): Promise<SessionParent | null> =>
     id: session.parent.id,
     phone: session.parent.phone,
     displayName: session.parent.displayName,
-    mustChangePassword: session.parent.mustChangePassword,
     sessionId: session.id,
   };
 });

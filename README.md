@@ -165,24 +165,23 @@ reference instead of a duplicate, and a hidden honeypot field files bot submissi
 spam without telling the sender.
 
 ### Parent portal
-Parents sign in at `/parent/login` with their **mobile number and a password**, and see
-every child whose parent or WhatsApp number matches theirs — so brothers and sisters appear
-together, and a sibling admitted later shows up without anyone linking them. For each child:
-the latest result subject by subject, class and section position, progress over time, the
-strongest subject and the one needing attention, the upcoming date sheet with roll number,
+Parents sign in at `/parent/login` with **their mobile number — there is no password** —
+and see every child whose parent or WhatsApp number matches theirs, so brothers and sisters
+appear together, and a sibling admitted later shows up without anyone linking them. For each
+child: the latest result subject by subject, class and section position, progress over time,
+the strongest subject and the one needing attention, the upcoming date sheet with roll number,
 certificates, the messages the academy has sent about them, and the official report card to
 print or save as PDF.
 
 **Keep me signed in** remembers the phone for 90 days after the last visit, renewed each
-time, so a parent who checks every term is not asked to sign in again. Untick it on a shared
-computer and the session ends when the browser closes.
+time. Untick it on a shared computer and the session ends when the browser closes.
 
-The office manages accounts under **Students → Parent Accounts**. The page lists every family
-on the student records that has no account yet, with a one-click *Create account*. A
-temporary password is generated and shown **once**, with a button to send the sign-in
-details on WhatsApp; the parent must replace it at first sign-in, after which nobody at the
-academy knows it. Staff can reset a password, sign a parent out of every device, or switch
-an account off.
+The office controls who can sign in under **Students → Parent Accounts**. A number only
+works once it has been given access there. The page lists every family on the student records
+without access, with a per-family *Give access* button and a **Give all access** button for
+the whole school at once, plus a WhatsApp button that sends the family the portal link. Access
+can be switched off at any time — which also signs that parent out of every device — for
+example when a number changes hands or a family leaves.
 
 What a parent can and cannot reach:
 
@@ -195,10 +194,12 @@ What a parent can and cannot reach:
 * **Not withdrawn or transferred students**, even on a matching number. Mobile numbers are
   recycled, and one that belonged to a family who left may now belong to a stranger.
 
-Sign-in is rate-limited per number and per address, locks after five wrong passwords, and
-gives the same error whether or not a number is registered.
+Because the number is the only thing needed, **anyone who has a parent's number can see that
+family's children's results**. Sign-in attempts with numbers that have no access are
+rate-limited per address, which slows anyone trying number after number, and every sign-in is
+written to the audit log.
 
-
+### Result approval & locking
 Marks completed → verification → processing → controller review → principal approval →
 publication → lock. After locking, teachers and the Examination Controller can no
 longer change marks; only a Super Admin can unlock, and only with a written reason and

@@ -1087,7 +1087,12 @@ model AdmissionEnquiry {
 // PARENT PORTAL
 // ---------------------------------------------------------------------
 
-/// A parent's sign-in to the portal, identified by their mobile number.
+/// A parent's access to the portal, identified by their mobile number.
+///
+/// Parents sign in with the number alone — there is no password. The account is
+/// what gives the office control: a number can only sign in once the academy
+/// has created an account for it, and an account can be switched off at any
+/// time, which also ends every session it has.
 ///
 /// Deliberately not a `User`. Staff accounts carry roles and permissions; a
 /// parent account carries neither, and its sessions live in a separate table
@@ -1099,18 +1104,14 @@ model AdmissionEnquiry {
 /// parent or WhatsApp number normalises to `phone`, so a younger sibling
 /// admitted later appears without anyone having to link them.
 model ParentAccount {
-  id                 String    @id @default(cuid())
-  phone              String    @unique // international dial form, e.g. 923001234567
-  displayName        String
-  passwordHash       String
-  status             String    @default("ACTIVE") // ACTIVE | DISABLED
-  mustChangePassword Boolean   @default(true)
-  failedAttempts     Int       @default(0)
-  lockedUntil        DateTime?
-  lastLoginAt        DateTime?
-  createdByName      String?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  id            String    @id @default(cuid())
+  phone         String    @unique // international dial form, e.g. 923001234567
+  displayName   String
+  status        String    @default("ACTIVE") // ACTIVE | DISABLED
+  lastLoginAt   DateTime?
+  createdByName String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   sessions ParentSession[]
 
