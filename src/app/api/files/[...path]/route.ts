@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
+import { parentCanSeePhoto } from '@/lib/parent-auth';
 import { resolveUploadRef } from '@/server/services/uploads';
 
 export const dynamic = 'force-dynamic';
@@ -10,7 +11,8 @@ export const dynamic = 'force-dynamic';
  * photographs) from the database.
  *
  * Branding assets are public because they appear on documents a member of the
- * public may legitimately verify; everything else requires a signed-in user.
+ * public may legitimately verify. A student photograph is served to signed-in
+ * staff, or to a signed-in parent — but only for their own children.
  */
 export async function GET(
   _request: Request,
@@ -23,8 +25,10 @@ export async function GET(
 
   const isBranding = ref.folder === 'branding';
   if (!isBranding) {
-    const user = await getCurrentUser();
-    if (!user) return new NextResponse('Not authorised', { status: 403 });
+    const staff = await getCurrentUser();
+    const allowed =
+      staff !== null || (await parentCanSeePhoto(`/api/files/${ref.folder}/${ref.fileName}`));
+    if (!allowed) return new NextResponse('Not authorised', { status: 403 });
   }
 
   const file = await prisma.storedFile.findUnique({

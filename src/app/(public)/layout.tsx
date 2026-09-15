@@ -29,6 +29,12 @@ export default async function PublicLayout({ children }: { children: React.React
               Apply for Admission
             </Link>
             <Link
+              href="/parent/login"
+              className="rounded-lg border border-white/25 px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-white/10"
+            >
+              Parent Login
+            </Link>
+            <Link
               href="/login"
               className="rounded-lg border border-white/25 px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-white/10"
             >

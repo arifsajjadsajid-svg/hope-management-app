@@ -1082,3 +1082,60 @@ model AdmissionEnquiry {
   @@index([createdAt])
   @@map("admission_enquiries")
 }
+
+// ---------------------------------------------------------------------
+// PARENT PORTAL
+// ---------------------------------------------------------------------
+
+/// A parent's sign-in to the portal, identified by their mobile number.
+///
+/// Deliberately not a `User`. Staff accounts carry roles and permissions; a
+/// parent account carries neither, and its sessions live in a separate table
+/// with a separate cookie. A parent's session therefore cannot satisfy any
+/// staff permission check — there is no configuration mistake that could hand
+/// a parent access to marks entry or to another family's records.
+///
+/// Children are not stored against the account. They are every student whose
+/// parent or WhatsApp number normalises to `phone`, so a younger sibling
+/// admitted later appears without anyone having to link them.
+model ParentAccount {
+  id                 String    @id @default(cuid())
+  phone              String    @unique // international dial form, e.g. 923001234567
+  displayName        String
+  passwordHash       String
+  status             String    @default("ACTIVE") // ACTIVE | DISABLED
+  mustChangePassword Boolean   @default(true)
+  failedAttempts     Int       @default(0)
+  lockedUntil        DateTime?
+  lastLoginAt        DateTime?
+  createdByName      String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  sessions ParentSession[]
+
+  @@index([status])
+  @@map("parent_accounts")
+}
+
+/// A signed-in parent device. Only the SHA-256 of the cookie token is stored.
+model ParentSession {
+  id         String    @id @default(cuid())
+  parentId   String
+  tokenHash  String    @unique
+  /// "Keep me signed in": the session slides forward on each visit instead of
+  /// ending when the browser closes.
+  persistent Boolean   @default(true)
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime  @default(now())
+  lastSeenAt DateTime  @default(now())
+  expiresAt  DateTime
+  revokedAt  DateTime?
+
+  parent ParentAccount @relation(fields: [parentId], references: [id], onDelete: Cascade)
+
+  @@index([parentId])
+  @@index([expiresAt])
+  @@map("parent_sessions")
+}

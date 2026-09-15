@@ -164,7 +164,41 @@ are capped per address per hour, the same child sent twice in a day returns the 
 reference instead of a duplicate, and a hidden honeypot field files bot submissions as
 spam without telling the sender.
 
-### Result approval & locking
+### Parent portal
+Parents sign in at `/parent/login` with their **mobile number and a password**, and see
+every child whose parent or WhatsApp number matches theirs — so brothers and sisters appear
+together, and a sibling admitted later shows up without anyone linking them. For each child:
+the latest result subject by subject, class and section position, progress over time, the
+strongest subject and the one needing attention, the upcoming date sheet with roll number,
+certificates, the messages the academy has sent about them, and the official report card to
+print or save as PDF.
+
+**Keep me signed in** remembers the phone for 90 days after the last visit, renewed each
+time, so a parent who checks every term is not asked to sign in again. Untick it on a shared
+computer and the session ends when the browser closes.
+
+The office manages accounts under **Students → Parent Accounts**. The page lists every family
+on the student records that has no account yet, with a one-click *Create account*. A
+temporary password is generated and shown **once**, with a button to send the sign-in
+details on WhatsApp; the parent must replace it at first sign-in, after which nobody at the
+academy knows it. Staff can reset a password, sign a parent out of every device, or switch
+an account off.
+
+What a parent can and cannot reach:
+
+* **Only their own children.** Any other student — or any other student's report card — is a
+  plain 404, so the portal never even confirms that a given ID exists.
+* **Only published results.** Marks still being entered or checked are never shown.
+* **Nothing in the staff system.** Parent accounts are not user accounts: separate table,
+  separate cookie, separate guard. A parent's session cannot satisfy any staff permission,
+  so no role misconfiguration can grant one access to marks entry or other families' records.
+* **Not withdrawn or transferred students**, even on a matching number. Mobile numbers are
+  recycled, and one that belonged to a family who left may now belong to a stranger.
+
+Sign-in is rate-limited per number and per address, locks after five wrong passwords, and
+gives the same error whether or not a number is registered.
+
+
 Marks completed → verification → processing → controller review → principal approval →
 publication → lock. After locking, teachers and the Examination Controller can no
 longer change marks; only a Super Admin can unlock, and only with a written reason and

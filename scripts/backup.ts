@@ -21,7 +21,7 @@ const BACKUP_ROOT = path.join(process.cwd(), 'storage', 'backups');
 const KEEP_DAYS = Number(process.env.BACKUP_KEEP_DAYS ?? 30);
 
 /** Short-lived security records; see src/server/services/backup.ts. */
-const EXCLUDED = new Set(['UserSession', 'LoginAttempt']);
+const EXCLUDED = new Set(['UserSession', 'ParentSession', 'LoginAttempt']);
 
 function serialise(value: unknown): unknown {
   if (value === null || value === undefined) return value ?? null;

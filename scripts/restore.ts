@@ -18,7 +18,7 @@ import { PrismaClient, Prisma } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-const EXCLUDED = new Set(['UserSession', 'LoginAttempt']);
+const EXCLUDED = new Set(['UserSession', 'ParentSession', 'LoginAttempt']);
 
 function modelList() {
   return Prisma.dmmf.datamodel.models
@@ -141,6 +141,7 @@ async function main() {
       >;
 
       await client.userSession.deleteMany({});
+      await client.parentSession.deleteMany({});
       await client.loginAttempt.deleteMany({});
 
       for (const { client: name } of [...order].reverse()) {

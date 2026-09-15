@@ -38,6 +38,7 @@ export const NAVIGATION: NavGroup[] = [
       { label: 'Add Student', href: '/students/new', permissions: ['students.create'] },
       { label: 'Student Promotion', href: '/students/promotion', permissions: ['students.promote'] },
       { label: 'Import Students', href: '/students/import', permissions: ['students.import'] },
+      { label: 'Parent Accounts', href: '/parents', permissions: ['parents.view'] },
     ],
   },
   {

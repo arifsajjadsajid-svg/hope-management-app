@@ -92,6 +92,16 @@ export default async function LoginPage() {
             <p className="tabular">{academy.contactLine}</p>
           </div>
 
+          <p className="mt-5 text-center text-[13px] text-slate-600">
+            Parent?{' '}
+            <a
+              href="/parent/login"
+              className="font-semibold text-royal-700 underline underline-offset-2 hover:text-royal-800"
+            >
+              Sign in to the parent portal
+            </a>
+          </p>
+
           {academy.resultPortalEnabled && (
             <p className="mt-5 text-center text-[13px] text-slate-600">
               Looking for your result?{' '}

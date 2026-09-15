@@ -69,7 +69,7 @@ function serialise(value: unknown): unknown {
  * security records, restoring them would revive expired logins, and they are
  * by far the largest tables in a busy term.
  */
-const EXCLUDED_MODELS = new Set(['UserSession', 'LoginAttempt']);
+const EXCLUDED_MODELS = new Set(['UserSession', 'ParentSession', 'LoginAttempt']);
 
 export async function buildBackup(): Promise<BackupFile> {
   const settings = await prisma.academySettings.findUnique({ where: { id: 'academy' } });
@@ -278,6 +278,7 @@ export async function restoreBackup(file: BackupFile): Promise<{ restored: Recor
 
       // Sessions first: they reference users, and every login is being invalidated.
       await client.userSession.deleteMany({});
+      await client.parentSession.deleteMany({});
       await client.loginAttempt.deleteMany({});
 
       // Children before parents.

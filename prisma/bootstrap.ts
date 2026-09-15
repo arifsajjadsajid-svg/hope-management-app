@@ -15,8 +15,9 @@
  *    ADMIN_USERNAME=principal ADMIN_PASSWORD='a long password' \
  *    ADMIN_NAME='Muhammad Arif Sajjad' npm run db:bootstrap
  *
- *  Safe to re-run: existing roles, permissions and the admin account are
- *  updated in place rather than duplicated, and no academic data is touched.
+ *  Safe to re-run, and meant to be after an update: new permissions are added
+ *  to the roles, an existing admin account (and its password) is left alone,
+ *  and no academic data is touched.
  * =====================================================================
  */
 
@@ -60,8 +61,15 @@ function checkPassword(password: string): void {
 }
 
 async function bootstrapPermissions() {
+  // Which permissions this run introduces. Only those are granted to existing
+  // roles below: anything an administrator has since added to or taken away
+  // from a role under Users & Roles is their decision and stays as it is.
+  const introduced = new Set<string>();
+
   for (const code of ALL_PERMISSIONS) {
     const meta = PERMISSIONS[code];
+    const existing = await prisma.permission.findUnique({ where: { code }, select: { id: true } });
+    if (!existing) introduced.add(code);
     await prisma.permission.upsert({
       where: { code },
       update: { name: meta.name, groupName: meta.group },
@@ -69,12 +77,14 @@ async function bootstrapPermissions() {
     });
   }
 
-  // Anything removed from the catalogue should not linger with a grant attached.
+  // A permission removed from the catalogue takes its grants with it (cascade).
   await prisma.permission.deleteMany({ where: { code: { notIn: [...ALL_PERMISSIONS] } } });
 
   const permissionByCode = new Map((await prisma.permission.findMany()).map((p) => [p.code, p.id]));
+  let granted = 0;
 
   for (const [code, permissions] of Object.entries(ROLE_PERMISSIONS)) {
+    const existingRole = await prisma.role.findUnique({ where: { code }, select: { id: true } });
     const role = await prisma.role.upsert({
       where: { code },
       update: { name: ROLE_LABELS[code] ?? code, description: ROLE_DESCRIPTIONS[code] ?? null },
@@ -86,26 +96,26 @@ async function bootstrapPermissions() {
       },
     });
 
-    const wanted = permissions
-      .map((permissionCode) => permissionByCode.get(permissionCode))
-      .filter((id): id is string => Boolean(id));
+    // A brand-new role gets its full default set; an existing one only the
+    // permissions that did not exist until now.
+    const toGrant = existingRole ? permissions.filter((p) => introduced.has(p)) : permissions;
 
-    await prisma.rolePermission.deleteMany({
-      where: { roleId: role.id, permissionId: { notIn: wanted } },
-    });
-
-    for (const permissionId of wanted) {
+    for (const permissionCode of toGrant) {
+      const permissionId = permissionByCode.get(permissionCode);
+      if (!permissionId) continue;
       await prisma.rolePermission.upsert({
         where: { roleId_permissionId: { roleId: role.id, permissionId } },
         update: {},
         create: { roleId: role.id, permissionId },
       });
+      granted += 1;
     }
   }
 
   log(
     'Roles & permissions',
-    `${ALL_PERMISSIONS.length} permissions across ${Object.keys(ROLE_PERMISSIONS).length} roles`,
+    `${ALL_PERMISSIONS.length} permissions across ${Object.keys(ROLE_PERMISSIONS).length} roles` +
+      (introduced.size ? ` — ${introduced.size} new, ${granted} grant(s) added` : ' — nothing new'),
   );
 
   return new Map((await prisma.role.findMany()).map((r) => [r.code, r.id]));
@@ -197,13 +207,25 @@ async function bootstrapSettings(gradingId: string, policyId: string | null) {
 
 async function bootstrapAdmin(roleIds: Map<string, string>) {
   const username = (process.env.ADMIN_USERNAME ?? '').trim();
-  const password = process.env.ADMIN_PASSWORD ?? '';
   const fullName = (process.env.ADMIN_NAME ?? '').trim() || 'System Administrator';
 
-  if (!username || !password) {
-    throw new Error(
-      'Set ADMIN_USERNAME and ADMIN_PASSWORD before running this. They create the first sign-in.',
-    );
+  if (!username) {
+    throw new Error('Set ADMIN_USERNAME before running this. It names the first sign-in.');
+  }
+
+  // Re-running this script is how new permissions reach a live database after
+  // an update, so an account that already exists is left exactly as it is.
+  // Overwriting it would silently put back the password from .env and undo
+  // whatever the administrator has changed it to since.
+  const existing = await prisma.user.findUnique({ where: { username } });
+  if (existing) {
+    log('Super Admin account', `${username} — already exists, left unchanged`);
+    return;
+  }
+
+  const password = process.env.ADMIN_PASSWORD ?? '';
+  if (!password) {
+    throw new Error('Set ADMIN_PASSWORD before running this. It is the first sign-in password.');
   }
   if (!/^[a-z0-9._-]{3,32}$/i.test(username)) {
     throw new Error('ADMIN_USERNAME must be 3–32 characters: letters, digits, dot, dash, underscore.');
@@ -213,16 +235,12 @@ async function bootstrapAdmin(roleIds: Map<string, string>) {
   const roleId = roleIds.get(ROLE.SUPER_ADMIN);
   if (!roleId) throw new Error('The Super Admin role is missing. Re-run this script.');
 
-  const passwordHash = await bcrypt.hash(password, 12);
-
-  await prisma.user.upsert({
-    where: { username },
-    update: { passwordHash, fullName, roleId, status: 'ACTIVE', failedAttempts: 0, lockedUntil: null },
-    create: {
+  await prisma.user.create({
+    data: {
       username,
       fullName,
       email: process.env.ADMIN_EMAIL?.trim() || null,
-      passwordHash,
+      passwordHash: await bcrypt.hash(password, 12),
       roleId,
       status: 'ACTIVE',
       mustChangePassword: false,

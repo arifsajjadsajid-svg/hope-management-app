@@ -46,7 +46,10 @@ export function Modal({
   } as const;
 
   return (
-    <div className="no-print fixed inset-0 z-[90] flex items-start justify-center overflow-y-auto p-4 sm:p-6">
+    // text-left: a dialog is often opened from a button in a right-aligned
+    // table cell, and although it floats over the page it still sits inside
+    // that cell in the document, so it would otherwise inherit the alignment.
+    <div className="no-print fixed inset-0 z-[90] flex items-start justify-center overflow-y-auto p-4 text-left sm:p-6">
       <div
         className="fixed inset-0 bg-navy-950/50 backdrop-blur-[2px]"
         onClick={onClose}

@@ -23,6 +23,10 @@ export const PERMISSIONS = {
   'admissions.view': { name: 'View admission enquiries', group: 'Admissions' },
   'admissions.manage': { name: 'Handle admission enquiries', group: 'Admissions' },
 
+  // Parent portal
+  'parents.view': { name: 'View parent portal accounts', group: 'Parent Portal' },
+  'parents.manage': { name: 'Create parent accounts and reset their passwords', group: 'Parent Portal' },
+
   // Academics
   'academics.view': { name: 'View academic structure', group: 'Academics' },
   'sessions.manage': { name: 'Manage academic sessions', group: 'Academics' },
@@ -98,6 +102,8 @@ export const ROLE_PERMISSIONS: Record<RoleCode, PermissionCode[]> = {
     'students.export',
     'admissions.view',
     'admissions.manage',
+    'parents.view',
+    'parents.manage',
     'academics.view',
     'exams.view',
     'marks.view',
