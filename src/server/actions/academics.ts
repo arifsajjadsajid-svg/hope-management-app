@@ -12,6 +12,7 @@ import {
   subjectSchema,
   teacherSchema,
 } from '@/lib/schemas';
+import { addMissingSubjectsForClasses } from '../services/exam-subjects';
 import { runAction, ok, BusinessRuleError, type ActionResult } from '../action-result';
 
 const formValue = (formData: FormData, key: string) => {
@@ -358,8 +359,18 @@ export async function saveSubjectAction(
       newValue: data,
     });
 
+    // An examination created before this subject existed would otherwise never
+    // include it, and its date sheet would have nothing to schedule.
+    const examsUpdated = saved.isActive ? await addMissingSubjectsForClasses([saved.classId]) : [];
+    if (examsUpdated.length) revalidatePath('/exams');
+
     revalidatePath('/academics/subjects');
-    return ok(undefined, `Subject ${saved.name} saved.`);
+    return ok(
+      undefined,
+      examsUpdated.length
+        ? `Subject ${saved.name} saved and added to ${examsUpdated.map((e) => `"${e.examName}"`).join(', ')}.`
+        : `Subject ${saved.name} saved.`,
+    );
   });
 }
 
@@ -442,8 +453,16 @@ export async function copySubjectsAction(
       description: `Copied ${toCopy.length} subject(s) from ${source.name} to ${target.name}`,
     });
 
+    const examsUpdated = await addMissingSubjectsForClasses([toClassId]);
+
     revalidatePath('/academics/subjects');
-    return ok(undefined, `Copied ${toCopy.length} subject(s) into ${target.name}.`);
+    if (examsUpdated.length) revalidatePath('/exams');
+    return ok(
+      undefined,
+      examsUpdated.length
+        ? `Copied ${toCopy.length} subject(s) into ${target.name} and added them to ${examsUpdated.map((e) => `"${e.examName}"`).join(', ')}.`
+        : `Copied ${toCopy.length} subject(s) into ${target.name}.`,
+    );
   });
 }
 

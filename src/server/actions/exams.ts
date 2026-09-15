@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
-import { requirePermission } from '@/lib/auth';
+import { requirePermission, requireAnyPermission } from '@/lib/auth';
 import { recordAudit } from '@/lib/audit';
 import { AUDIT_ACTIONS, EXAM_STATUS } from '@/lib/constants';
 import {
@@ -13,6 +13,11 @@ import {
   invigilationSchema,
 } from '@/lib/schemas';
 import { generateRollNumbers, setManualRollNumber } from '../services/roll-numbers';
+import {
+  addMissingSubjectsToExam,
+  missingExamSubjects,
+  OPEN_EXAM_STATUSES,
+} from '../services/exam-subjects';
 import { saveSeatingPlan, type SeatingStrategy } from '../services/seating';
 import { runAction, ok, BusinessRuleError, type ActionResult } from '../action-result';
 import { minutesBetween } from '@/lib/utils';
@@ -450,6 +455,46 @@ export async function deleteDateSheetEntryAction(entryId: string): Promise<Actio
 }
 
 /**
+ * Brings an examination's subjects up to date with its classes — for an
+ * examination created before some of its classes' subjects were added.
+ */
+export async function addMissingExamSubjectsAction(
+  examId: string,
+): Promise<ActionResult<{ added: number }>> {
+  return runAction(async () => {
+    await requireAnyPermission(['exams.edit', 'datesheet.manage']);
+
+    const exam = await assertExamEditable(examId);
+    if (!OPEN_EXAM_STATUSES.includes(exam.status)) {
+      throw new BusinessRuleError(
+        'Marks entry has already begun for this examination, so subjects can no longer be added — doing so would change results already under way.',
+      );
+    }
+
+    const missing = await missingExamSubjects(examId);
+    if (missing.length === 0) {
+      return ok({ added: 0 }, 'This examination already has every subject of its classes.');
+    }
+
+    const added = await addMissingSubjectsToExam(examId);
+
+    await recordAudit({
+      action: AUDIT_ACTIONS.EXAM_UPDATED,
+      entityType: 'Exam',
+      entityId: examId,
+      description: `Added ${added.length} subject(s) to ${exam.name}: ${added.map((s) => `${s.name} (${s.className})`).join(', ')}`,
+    });
+
+    revalidatePath('/exams/date-sheets');
+    revalidatePath(`/exams/${examId}`);
+    return ok(
+      { added: added.length },
+      `Added ${added.length} subject(s) to ${exam.name}. You can schedule them now.`,
+    );
+  });
+}
+
+/**
  * Lays out one paper per working day for every subject of the examination,
  * skipping Sundays. Existing entries are left untouched.
  */
@@ -474,7 +519,9 @@ export async function autoBuildDateSheetAction(
     ]);
 
     if (examSubjects.length === 0) {
-      throw new BusinessRuleError('This examination has no subjects to schedule.');
+      throw new BusinessRuleError(
+        'This examination has no subjects yet. If you added subjects to its class after creating the examination, use "Add missing subjects" on this page first.',
+      );
     }
 
     const already = new Set(existing.map((e) => `${e.examSubjectId}|${e.classId}`));

@@ -11,7 +11,9 @@ import {
   DateSheetEntryDialog,
   DeleteDateSheetEntryButton,
   AutoBuildDateSheetButton,
+  AddMissingSubjectsButton,
 } from './date-sheet-clients';
+import { missingExamSubjects, OPEN_EXAM_STATUSES } from '@/server/services/exam-subjects';
 import { formatDate, formatTime12, formatDuration, dayName, toISODateInput } from '@/lib/utils';
 
 export const metadata: Metadata = { title: 'Date Sheets' };
@@ -97,7 +99,7 @@ export default async function DateSheetsPage({
     );
   }
 
-  const [sections, rooms] = await Promise.all([
+  const [sections, rooms, missingSubjects] = await Promise.all([
     prisma.section.findMany({
       where: { classId: { in: exam.examClasses.map((c) => c.classId) } },
       select: { id: true, name: true, classId: true },
@@ -108,6 +110,7 @@ export default async function DateSheetsPage({
       select: { id: true, name: true, roomNumber: true },
       orderBy: { roomNumber: 'asc' },
     }),
+    missingExamSubjects(exam.id),
   ]);
 
   const subjectOptions = exam.examSubjects.map((es) => ({
@@ -132,6 +135,7 @@ export default async function DateSheetsPage({
   }
 
   const locked = exam.resultLocked;
+  const canTakeSubjects = !locked && OPEN_EXAM_STATUSES.includes(exam.status);
 
   return (
     <>
@@ -173,6 +177,28 @@ export default async function DateSheetsPage({
       {locked && (
         <Alert tone="warning" title="Results are locked" className="mb-5">
           The date sheet for this examination can no longer be changed.
+        </Alert>
+      )}
+
+      {missingSubjects.length > 0 && (
+        <Alert
+          tone="warning"
+          title={`${missingSubjects.length} subject${missingSubjects.length === 1 ? ' is' : 's are'} missing from this examination`}
+          className="mb-5"
+        >
+          <p>
+            {missingSubjects.map((s) => `${s.name} (${s.className})`).join(' · ')}
+          </p>
+          <p className="mt-1.5">
+            {canTakeSubjects
+              ? 'They were added to the class after this examination was created, so they cannot be scheduled until they are added here.'
+              : 'They were added to the class after marks entry began, so they are left out to keep results already under way unchanged.'}
+          </p>
+          {canManage && canTakeSubjects && (
+            <div className="mt-3">
+              <AddMissingSubjectsButton examId={exam.id} count={missingSubjects.length} />
+            </div>
+          )}
         </Alert>
       )}
 

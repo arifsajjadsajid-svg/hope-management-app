@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useActionState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Pencil, Trash2, Save, Wand2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Save, Wand2, ListPlus } from 'lucide-react';
 import {
   Alert,
   Button,
@@ -18,6 +18,7 @@ import {
   saveDateSheetEntryAction,
   deleteDateSheetEntryAction,
   autoBuildDateSheetAction,
+  addMissingExamSubjectsAction,
 } from '@/server/actions/exams';
 
 export type DateSheetSubjectOption = {
@@ -371,5 +372,31 @@ export function AutoBuildDateSheetButton({
         </div>
       </Modal>
     </>
+  );
+}
+
+/** Pulls in subjects added to the examination's classes after it was created. */
+export function AddMissingSubjectsButton({ examId, count }: { examId: string; count: number }) {
+  const router = useRouter();
+  const toast = useToast();
+  const [pending, setPending] = React.useState(false);
+
+  const run = async () => {
+    setPending(true);
+    const result = await addMissingExamSubjectsAction(examId);
+    setPending(false);
+    if (result.ok) {
+      toast.success(result.message ?? 'Subjects added.');
+      router.refresh();
+    } else {
+      toast.error('Could not add the subjects', result.error);
+    }
+  };
+
+  return (
+    <Button size="sm" onClick={run} loading={pending}>
+      <ListPlus className="h-4 w-4" />
+      Add {count} missing subject{count === 1 ? '' : 's'}
+    </Button>
   );
 }
