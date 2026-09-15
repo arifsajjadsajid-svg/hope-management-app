@@ -14,6 +14,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { requireLocalDatabase } from '../scripts/require-local-database';
 import bcrypt from 'bcryptjs';
 import { PERMISSIONS, ROLE_PERMISSIONS, ALL_PERMISSIONS } from '../src/lib/permissions';
 import { ROLE, ROLE_LABELS, ACADEMY_DEFAULTS, AUDIT_ACTIONS } from '../src/lib/constants';
@@ -353,6 +354,10 @@ function markFor(ability: number, drift: number, subjectCode: string, examIndex:
 /* ---------------------------------------------------------------- main */
 
 async function main() {
+  // This script starts by deleting everything. Refuse outright unless the
+  // database is on this machine, before a single query runs.
+  requireLocalDatabase('Loading demonstration data');
+
   console.log('\n═══════════════════════════════════════════════════════════');
   console.log('  THE HOPE SCIENCE ACADEMY — seeding the database');
   console.log('  247/E-1, Johar Town, Lahore | 0322-4157001 | 0300-8194789');

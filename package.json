@@ -13,7 +13,7 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
-    "db:reset": "prisma migrate reset --force",
+    "db:reset": "tsx scripts/require-local-database.ts \"Resetting the database\" && prisma migrate reset --force",
     "setup": "prisma generate && prisma migrate deploy && tsx prisma/seed.ts",
     "backup": "tsx scripts/backup.ts",
     "reset-admin": "tsx scripts/reset-admin.ts",
