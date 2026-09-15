@@ -199,6 +199,44 @@ family's children's results**. Sign-in attempts with numbers that have no access
 rate-limited per address, which slows anyone trying number after number, and every sign-in is
 written to the audit log.
 
+### Scan Documents
+**Scan Documents** turns paper into records. Photograph or upload a PDF of:
+
+* **a marks sheet, award list or result sheet** — one subject or a whole class across every
+  subject — into the marks of a chosen examination and class;
+* **a student list or admission register** — into new student records, enrolled in a chosen
+  section;
+* **filled-in admission forms** — into enquiries under **Admissions**, each with its own
+  reference number.
+
+Pages are read by Claude, Anthropic's AI model, and the rows come back to a review screen.
+**Nothing is saved until a person has checked it**, and the checks are strict because marks
+decide results:
+
+* Every value the reader was unsure of — smudged, overwritten, in Urdu — is highlighted amber
+  and blocks saving until someone corrects it or presses *Looks right*.
+* Each row is matched to a student by exam roll number, then class roll number, then an
+  unmistakable name. A roll number and name that do not agree, or a student chosen twice, are
+  flagged.
+* Marks above the paper maximum, unreadable values and a single combined mark for a paper with
+  separate theory and practical parts are refused. `A`, `Absent`, `Med` and similar are
+  understood as ABS, MED, EX and WH.
+* When the sheet has a total column, the marks read are added up and compared with it — a
+  mismatch usually means one mark was misread.
+* A mark that would replace one already entered says so, with the old and new values.
+* The columns of the sheet are matched to subjects automatically from their headings, and can
+  be corrected before saving.
+
+The browser shrinks phone photos before upload, and a **View** button beside every row shows
+the page it came from. The server checks everything again, against the records as they are at
+that moment, before writing. The uploaded pages are not stored; each page read and each save is
+written to the audit log, including the size of the request for keeping an eye on cost.
+
+Scanning needs an Anthropic API key (see [Configuration](#configuration)). Without one the page
+explains how to switch it on, and the rest of the system is unaffected. Reading costs roughly
+US$0.10 for a one-subject award list and up to about US$0.50 for a crowded whole-class result
+sheet; a limit on files read per day (150 by default) stops a mistake running up a bill.
+
 ### Result approval & locking
 Marks completed → verification → processing → controller review → principal approval →
 publication → lock. After locking, teachers and the Examination Controller can no
@@ -278,6 +316,16 @@ cookies: each sign-in generates 32 random bytes, and only their SHA-256 hash is
 stored, so a stolen database yields no usable session and there is no key that
 could leak or need rotating.
 
+Document scanning is optional and switched on by one more variable:
+
+```ini
+ANTHROPIC_API_KEY="sk-ant-..."   # from console.anthropic.com → API Keys; add credit under Billing
+SCAN_DAILY_LIMIT=150             # optional: most photos/PDFs the academy may read in 24 hours
+SCAN_MODEL="claude-opus-5"       # optional: the model that reads the pages
+```
+
+Keep the key in Vercel's environment variables, never in the repository.
+
 ---
 
 ## Deploying to Vercel
@@ -294,6 +342,7 @@ In the Vercel dashboard: **Storage → Create Database → Neon**. Vercel adds
 | Name | Value |
 | --- | --- |
 | `NEXT_PUBLIC_APP_URL` | `https://<your-project>.vercel.app`, or your own domain |
+| `ANTHROPIC_API_KEY` | Optional. Switches on **Scan Documents** |
 
 ### 3. Deploy
 

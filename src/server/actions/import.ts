@@ -4,35 +4,24 @@ import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { requirePermission } from '@/lib/auth';
 import { recordAudit } from '@/lib/audit';
-import { AUDIT_ACTIONS, GENDERS, STUDENT_STATUS, MARK_SPECIAL_TOKENS } from '@/lib/constants';
+import { AUDIT_ACTIONS, MARK_SPECIAL_TOKENS } from '@/lib/constants';
+import {
+  checkStudentRow,
+  STUDENT_FIELD_KEYS,
+  type ImportIssue,
+  type StudentFields,
+} from '@/lib/import-rules';
 import { readWorkbookRows } from '../services/excel';
+import { createStudentsInSection } from '../services/student-import';
 import { runAction, ok, BusinessRuleError, type ActionResult } from '../action-result';
 import { round } from '@/lib/utils';
 
 /* ------------------------------------------------------------- shared */
 
-export type ImportIssue = { level: 'ERROR' | 'WARNING'; message: string };
+export type { ImportIssue };
 
-export type StudentImportRow = {
+export type StudentImportRow = StudentFields & {
   rowNumber: number;
-  admissionNumber: string;
-  registrationNo: string;
-  fullName: string;
-  fatherName: string;
-  motherName: string;
-  guardianName: string;
-  dateOfBirth: string;
-  gender: string;
-  bformCnic: string;
-  parentPhone: string;
-  studentPhone: string;
-  whatsappNumber: string;
-  email: string;
-  address: string;
-  previousSchool: string;
-  emergencyContact: string;
-  classRollNumber: string;
-  status: string;
   issues: ImportIssue[];
   importable: boolean;
 };
@@ -77,30 +66,6 @@ function pickColumn(row: Record<string, string>, aliases: string[]): string {
   return '';
 }
 
-function normaliseGender(value: string): string {
-  const text = value.trim().toUpperCase();
-  if (['M', 'MALE', 'BOY'].includes(text)) return 'MALE';
-  if (['F', 'FEMALE', 'GIRL'].includes(text)) return 'FEMALE';
-  if (GENDERS.includes(text as (typeof GENDERS)[number])) return text;
-  return '';
-}
-
-function normaliseDate(value: string): string {
-  const text = value.trim();
-  if (!text) return '';
-
-  // dd/mm/yyyy and dd-mm-yyyy are the common local formats.
-  const local = text.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
-  if (local) {
-    const [, d, m, y] = local;
-    return `${y}-${m!.padStart(2, '0')}-${d!.padStart(2, '0')}`;
-  }
-
-  const iso = new Date(text);
-  if (!Number.isNaN(iso.getTime())) return iso.toISOString().slice(0, 10);
-  return '';
-}
-
 /* ----------------------------------------------------- student import */
 
 export async function previewStudentImportAction(
@@ -136,89 +101,26 @@ export async function previewStudentImportAction(
     const existing = await prisma.student.findMany({
       select: { admissionNumber: true, registrationNo: true },
     });
-    const existingAdmissions = new Set(existing.map((s) => s.admissionNumber.toLowerCase()));
-    const existingRegistrations = new Set(
-      existing.map((s) => s.registrationNo?.toLowerCase()).filter(Boolean) as string[],
-    );
+    const context = {
+      existingAdmissions: new Set(existing.map((s) => s.admissionNumber.toLowerCase())),
+      existingRegistrations: new Set(
+        existing.map((s) => s.registrationNo?.toLowerCase()).filter(Boolean) as string[],
+      ),
+    };
 
     const seenAdmissions = new Set<string>();
 
     const parsed: StudentImportRow[] = rows.map((raw, index) => {
-      const get = (key: keyof typeof STUDENT_COLUMNS) => pickColumn(raw, STUDENT_COLUMNS[key]);
-
-      const admissionNumber = get('admissionNumber');
-      const fullName = get('fullName');
-      const fatherName = get('fatherName');
-      const gender = normaliseGender(get('gender'));
-      const dateOfBirth = normaliseDate(get('dateOfBirth'));
-      const status = get('status').trim().toUpperCase();
-
-      const issues: ImportIssue[] = [];
-
-      if (!admissionNumber) issues.push({ level: 'ERROR', message: 'Admission number is missing' });
-      if (!fullName) issues.push({ level: 'ERROR', message: 'Student name is missing' });
-      if (!fatherName) issues.push({ level: 'ERROR', message: 'Father name is missing' });
-
-      if (admissionNumber) {
-        const key = admissionNumber.toLowerCase();
-        if (existingAdmissions.has(key)) {
-          issues.push({
-            level: 'ERROR',
-            message: `Admission number ${admissionNumber} already exists in the database`,
-          });
-        }
-        if (seenAdmissions.has(key)) {
-          issues.push({
-            level: 'ERROR',
-            message: `Admission number ${admissionNumber} appears more than once in this file`,
-          });
-        }
-        seenAdmissions.add(key);
-      }
-
-      const registrationNo = get('registrationNo');
-      if (registrationNo && existingRegistrations.has(registrationNo.toLowerCase())) {
-        issues.push({
-          level: 'ERROR',
-          message: `Registration number ${registrationNo} already exists`,
-        });
-      }
-
-      if (!gender) issues.push({ level: 'WARNING', message: 'Gender missing or unrecognised — defaults to Male' });
-      if (get('dateOfBirth') && !dateOfBirth) {
-        issues.push({ level: 'WARNING', message: 'Date of birth could not be read and will be left blank' });
-      }
-      if (status && !STUDENT_STATUS.includes(status as (typeof STUDENT_STATUS)[number])) {
-        issues.push({ level: 'WARNING', message: `Status "${status}" is unrecognised — defaults to Active` });
-      }
-
-      const email = get('email');
-      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        issues.push({ level: 'WARNING', message: 'Email looks invalid and will be left blank' });
-      }
+      const fields = Object.fromEntries(
+        STUDENT_FIELD_KEYS.map((key) => [key, pickColumn(raw, STUDENT_COLUMNS[key])]),
+      ) as StudentFields;
+      const checked = checkStudentRow(fields, context, seenAdmissions);
 
       return {
         rowNumber: index + 2, // +1 for the header row, +1 for 1-based numbering
-        admissionNumber,
-        registrationNo,
-        fullName,
-        fatherName,
-        motherName: get('motherName'),
-        guardianName: get('guardianName'),
-        dateOfBirth,
-        gender: gender || 'MALE',
-        bformCnic: get('bformCnic'),
-        parentPhone: get('parentPhone'),
-        studentPhone: get('studentPhone'),
-        whatsappNumber: get('whatsappNumber'),
-        email: email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : '',
-        address: get('address'),
-        previousSchool: get('previousSchool'),
-        emergencyContact: get('emergencyContact'),
-        classRollNumber: get('classRollNumber'),
-        status: STUDENT_STATUS.includes(status as (typeof STUDENT_STATUS)[number]) ? status : 'ACTIVE',
-        issues,
-        importable: !issues.some((i) => i.level === 'ERROR'),
+        ...checked.fields,
+        issues: checked.issues,
+        importable: !checked.issues.some((i) => i.level === 'ERROR'),
       };
     });
 
@@ -249,136 +151,45 @@ export async function commitStudentImportAction(input: {
   return runAction(async () => {
     const user = await requirePermission('students.import');
 
-    const importable = input.rows.filter((row) => row.importable);
-    if (importable.length === 0) {
-      throw new BusinessRuleError('There are no valid rows to import.');
-    }
+    // The rows come back from the browser, so the preview's verdict is not
+    // trusted: required fields and repeats are checked again here. Clashes with
+    // the database are left to the service, which reports them by number.
+    const seenAdmissions = new Set<string>();
+    const importable = input.rows
+      .filter((row) => row.importable)
+      .map((row) =>
+        checkStudentRow(
+          row,
+          { existingAdmissions: new Set(), existingRegistrations: new Set() },
+          seenAdmissions,
+        ),
+      )
+      .filter((checked) => !checked.issues.some((i) => i.level === 'ERROR'))
+      .map((checked) => checked.fields);
 
-    const section = await prisma.section.findUnique({
-      where: { id: input.sectionId },
-      include: { schoolClass: true },
+    const { imported, batchId, sectionLabel } = await createStudentsInSection({
+      userId: user.id,
+      batchType: 'STUDENTS',
+      fileName: input.fileName,
+      totalRows: input.rows.length,
+      sessionId: input.sessionId,
+      classId: input.classId,
+      sectionId: input.sectionId,
+      rows: importable,
     });
-    if (!section || section.classId !== input.classId) {
-      throw new BusinessRuleError('The selected section does not belong to the selected class.');
-    }
-    if (section.schoolClass.sessionId !== input.sessionId) {
-      throw new BusinessRuleError('The selected class does not belong to the selected session.');
-    }
-
-    const occupied = await prisma.enrollment.count({
-      where: { sectionId: input.sectionId, status: { notIn: ['LEFT', 'TRANSFERRED'] } },
-    });
-    if (occupied + importable.length > section.maxStrength) {
-      throw new BusinessRuleError(
-        `Importing ${importable.length} student(s) would put ${occupied + importable.length} in a section with a maximum strength of ${section.maxStrength}.`,
-      );
-    }
-
-    // Re-check duplicates at commit time in case another operator added a student.
-    const admissionNumbers = importable.map((r) => r.admissionNumber);
-    const clashes = await prisma.student.findMany({
-      where: { admissionNumber: { in: admissionNumbers } },
-      select: { admissionNumber: true },
-    });
-    if (clashes.length > 0) {
-      throw new BusinessRuleError(
-        `These admission numbers now exist in the database: ${clashes.map((c) => c.admissionNumber).join(', ')}. Re-run the preview.`,
-      );
-    }
-
-    // Next free class roll number in the target section.
-    const rolls = await prisma.enrollment.findMany({
-      where: { sectionId: input.sectionId, rollNumber: { not: null } },
-      select: { rollNumber: true },
-    });
-    const numbers = rolls.map((r) => Number(r.rollNumber)).filter((n) => Number.isFinite(n));
-    let nextRoll = numbers.length ? Math.max(...numbers) + 1 : 1;
-    const usedRolls = new Set(rolls.map((r) => r.rollNumber));
-
-    const batch = await prisma.importBatch.create({
-      data: {
-        type: 'STUDENTS',
-        fileName: input.fileName,
-        totalRows: input.rows.length,
-        status: 'VALIDATED',
-        createdById: user.id,
-      },
-    });
-
-    let imported = 0;
-
-    await prisma.$transaction(
-      async (tx) => {
-        for (const row of importable) {
-          const student = await tx.student.create({
-            data: {
-              admissionNumber: row.admissionNumber,
-              registrationNo: row.registrationNo || null,
-              fullName: row.fullName,
-              fatherName: row.fatherName,
-              motherName: row.motherName || null,
-              guardianName: row.guardianName || null,
-              dateOfBirth: row.dateOfBirth ? new Date(`${row.dateOfBirth}T12:00:00`) : null,
-              gender: row.gender,
-              bformCnic: row.bformCnic || null,
-              admissionDate: new Date(),
-              parentPhone: row.parentPhone || null,
-              studentPhone: row.studentPhone || null,
-              whatsappNumber: row.whatsappNumber || null,
-              email: row.email || null,
-              address: row.address || null,
-              previousSchool: row.previousSchool || null,
-              emergencyContact: row.emergencyContact || null,
-              status: row.status,
-            },
-          });
-
-          let roll = row.classRollNumber.trim();
-          if (!roll || usedRolls.has(roll)) {
-            roll = String(nextRoll).padStart(2, '0');
-            nextRoll += 1;
-          }
-          usedRolls.add(roll);
-
-          await tx.enrollment.create({
-            data: {
-              studentId: student.id,
-              sessionId: input.sessionId,
-              classId: input.classId,
-              sectionId: input.sectionId,
-              rollNumber: roll,
-              status: 'ACTIVE',
-            },
-          });
-
-          imported += 1;
-        }
-
-        await tx.importBatch.update({
-          where: { id: batch.id },
-          data: {
-            importedRows: imported,
-            failedRows: input.rows.length - imported,
-            status: 'COMPLETED',
-            logText: `Imported into ${section.schoolClass.name} — ${section.name}`,
-          },
-        });
-      },
-      { timeout: 180_000 },
-    );
 
     await recordAudit({
       action: AUDIT_ACTIONS.STUDENT_IMPORTED,
       entityType: 'ImportBatch',
-      entityId: batch.id,
-      description: `Imported ${imported} student(s) from "${input.fileName}" into ${section.schoolClass.name} — ${section.name}`,
+      entityId: batchId,
+      description: `Imported ${imported} student(s) from "${input.fileName}" into ${sectionLabel}`,
       severity: 'WARNING',
     });
 
     revalidatePath('/students');
     return ok(
       { imported, skipped: input.rows.length - imported },
-      `${imported} student(s) imported into ${section.schoolClass.name} — ${section.name}.`,
+      `${imported} student(s) imported into ${sectionLabel}.`,
     );
   });
 }

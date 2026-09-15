@@ -7,6 +7,7 @@ import { requirePermission, requestContext } from '@/lib/auth';
 import { recordAudit } from '@/lib/audit';
 import { AUDIT_ACTIONS } from '@/lib/constants';
 import { normalisePhone } from '@/lib/phone';
+import { nextEnquiryReference } from '../services/enquiry-reference';
 import { runAction, ok, BusinessRuleError, type ActionResult } from '../action-result';
 
 /**
@@ -44,21 +45,6 @@ const enquirySchema = z.object({
   address: z.string().trim().max(300).optional(),
   message: z.string().trim().max(1000).optional(),
 });
-
-/** "ENQ-2026-0042", unique and easy to read out over the phone. */
-async function nextReference(): Promise<string> {
-  const year = new Date().getFullYear();
-  const prefix = `ENQ-${year}-`;
-
-  const latest = await prisma.admissionEnquiry.findFirst({
-    where: { reference: { startsWith: prefix } },
-    orderBy: { reference: 'desc' },
-    select: { reference: true },
-  });
-
-  const nextNumber = latest ? Number(latest.reference.slice(prefix.length)) + 1 : 1;
-  return `${prefix}${String(nextNumber).padStart(4, '0')}`;
-}
 
 /**
  * Receives an enquiry from the public form. No authentication.
@@ -134,7 +120,7 @@ export async function submitEnquiryAction(
     }
 
     const isSpam = String(formData.get('website') ?? '').trim() !== '';
-    const reference = await nextReference();
+    const reference = await nextEnquiryReference();
 
     await prisma.admissionEnquiry.create({
       data: {

@@ -48,6 +48,12 @@ export const NAVIGATION: NavGroup[] = [
     permissions: ['admissions.view'],
   },
   {
+    label: 'Scan Documents',
+    icon: 'ScanLine',
+    href: '/scan',
+    permissions: ['marks.import', 'students.import', 'admissions.manage'],
+  },
+  {
     label: 'Academics',
     icon: 'BookOpen',
     permissions: ['academics.view'],
